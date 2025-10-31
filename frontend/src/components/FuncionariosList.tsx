@@ -20,6 +20,7 @@ interface Funcionario {
   salario: string;
 }
 
+// máscaras
 const formatarCPF = (valor: string) => {
   const apenasNum = valor.replace(/\D/g, '').slice(0, 11);
   const p1 = apenasNum.slice(0, 3);
@@ -70,11 +71,20 @@ const CadastroFuncionario: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [mensagem, setMensagem] = useState('');
 
+  // editar
+  const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario | null>(null);
+
+  // visualizar
+  const [funcionarioSelecionado, setFuncionarioSelecionado] = useState<Funcionario | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  // paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const limit = 5;
 
+  // filtros
   const [filtroNome, setFiltroNome] = useState('');
   const [filtroCpf, setFiltroCpf] = useState('');
   const [filtroDepartamento, setFiltroDepartamento] = useState('');
@@ -90,6 +100,7 @@ const CadastroFuncionario: React.FC = () => {
 
     const res = await fetch(`http://localhost:3001/funcionarios?${params.toString()}`);
     const data = await res.json();
+
     setFuncionarios(data.dados || []);
     setPaginaAtual(data.paginaAtual || 1);
     setTotalPaginas(data.totalPaginas || 1);
@@ -147,14 +158,31 @@ const CadastroFuncionario: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     setMensagem('');
-    try {
-      const res = await fetch('http://localhost:3001/funcionarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (!res.ok) throw new Error('Erro ao cadastrar');
 
+    const payload = { ...formData };
+
+    try {
+      if (funcionarioEditando?.id) {
+        // editar
+        const res = await fetch(`http://localhost:3001/funcionarios/${funcionarioEditando.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Erro ao atualizar');
+        setMensagem('Funcionário atualizado com sucesso ✅');
+      } else {
+        // criar
+        const res = await fetch('http://localhost:3001/funcionarios', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Erro ao cadastrar');
+        setMensagem('Funcionário cadastrado com sucesso ✅');
+      }
+
+      // limpa
       setFormData({
         nome_completo: '',
         cpf: '',
@@ -173,11 +201,11 @@ const CadastroFuncionario: React.FC = () => {
         departamento: '',
         salario: '',
       });
+      setFuncionarioEditando(null);
       setPaginaAtual(1);
       await carregarFuncionarios();
-      setMensagem('Funcionário cadastrado com sucesso ✅');
     } catch (err) {
-      alert('Erro ao cadastrar funcionário');
+      alert('Erro ao salvar funcionário');
     } finally {
       setSaving(false);
     }
@@ -200,10 +228,18 @@ const CadastroFuncionario: React.FC = () => {
     setPaginaAtual(p);
   };
 
+  const formatarDataBR = (data?: string) => {
+  if (!data) return '';
+  const d = new Date(data);
+  return d.toLocaleDateString('pt-BR');
+};
+
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 md:px-10">
       <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-md p-6 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Cadastrar Funcionário</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">
+          {funcionarioEditando ? 'Editar Funcionário' : 'Cadastrar Funcionário'}
+        </h1>
 
         {mensagem && (
           <div className="mb-4 rounded-md bg-green-100 text-green-800 px-4 py-2 text-sm">
@@ -211,6 +247,7 @@ const CadastroFuncionario: React.FC = () => {
           </div>
         )}
 
+        {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -256,7 +293,7 @@ const CadastroFuncionario: React.FC = () => {
                 value={formData.telefone}
                 onChange={handleTelefoneChange}
                 required
-                maxLength={15}
+                maxLength={14}
                 className="mt-1 w-full border rounded-md px-3 py-2"
                 placeholder="(00)00000-0000"
               />
@@ -285,6 +322,7 @@ const CadastroFuncionario: React.FC = () => {
             </div>
           </div>
 
+          {/* Endereço */}
           <div>
             <h2 className="text-lg font-semibold text-gray-700 mt-4 mb-2">Endereço</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -367,6 +405,7 @@ const CadastroFuncionario: React.FC = () => {
             </div>
           </div>
 
+          {/* Dados profissionais */}
           <div>
             <h2 className="text-lg font-semibold text-gray-700 mt-4 mb-2">Dados Profissionais</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -413,10 +452,15 @@ const CadastroFuncionario: React.FC = () => {
             disabled={saving}
             className="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition"
           >
-            {saving ? 'Cadastrando...' : 'Cadastrar Funcionário'}
+            {saving
+              ? 'Salvando...'
+              : funcionarioEditando
+              ? 'Salvar alterações'
+              : 'Cadastrar Funcionário'}
           </button>
         </form>
 
+        {/* FILTROS */}
         <div className="mt-10 flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm text-gray-700">Buscar por nome</label>
@@ -462,13 +506,17 @@ const CadastroFuncionario: React.FC = () => {
           </button>
         </div>
 
+        {/* LISTA */}
         <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-4">Lista de Funcionários</h2>
         <p className="text-sm text-gray-500 mb-2">
           Total: {totalRegistros} funcionário(s) • Página {paginaAtual} de {totalPaginas}
         </p>
         <div className="space-y-4">
           {funcionarios.map((f) => (
-            <div key={f.id} className="bg-gray-50 border rounded-md p-4 flex justify-between items-center">
+            <div
+              key={f.id}
+              className="bg-gray-50 border rounded-md p-4 flex justify-between items-center"
+            >
               <div>
                 <p className="font-semibold text-gray-800">{f.nome_completo}</p>
                 <p className="text-sm text-gray-600">CPF: {f.cpf}</p>
@@ -478,6 +526,43 @@ const CadastroFuncionario: React.FC = () => {
                 </p>
               </div>
               <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setFuncionarioSelecionado(f);
+                    setShowModal(true);
+                  }}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                >
+                  Visualizar
+                </button>
+                <button
+                  onClick={() => {
+                    setFuncionarioEditando(f);
+                    setFormData({
+                      nome_completo: f.nome_completo || '',
+                      cpf: f.cpf || '',
+                      email: f.email || '',
+                      telefone: f.telefone || '',
+                      data_nascimento: f.data_nascimento
+                        ? f.data_nascimento.slice(0, 10)
+                        : '',
+                      cep: f.cep || '',
+                      logradouro: f.logradouro || '',
+                      numero: f.numero || '',
+                      complemento: f.complemento || '',
+                      bairro: f.bairro || '',
+                      cidade: f.cidade || '',
+                      estado: f.estado || '',
+                      data_admissao: f.data_admissao ? f.data_admissao.slice(0, 10) : '',
+                      cargo: f.cargo || '',
+                      departamento: f.departamento || '',
+                      salario: f.salario ? String(f.salario) : '',
+                    });
+                  }}
+                  className="bg-yellow-400 text-white px-4 py-2 rounded-md hover:bg-yellow-500"
+                >
+                  Editar
+                </button>
                 <button
                   onClick={() => excluirFuncionario(f.id)}
                   className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
@@ -489,6 +574,7 @@ const CadastroFuncionario: React.FC = () => {
           ))}
         </div>
 
+        {/* PAGINAÇÃO */}
         {totalPaginas > 1 && (
           <div className="flex justify-between items-center mt-6">
             <button
@@ -521,6 +607,57 @@ const CadastroFuncionario: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL DE VISUALIZAÇÃO */}
+      {showModal && funcionarioSelecionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative">
+            <button
+              onClick={() => {
+                setShowModal(false);
+                setFuncionarioSelecionado(null);
+              }}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">
+              Dados do Funcionário
+            </h2>
+
+            <div className="space-y-2 text-sm text-gray-700">
+              <p><strong>Nome:</strong> {funcionarioSelecionado.nome_completo}</p>
+              <p><strong>CPF:</strong> {funcionarioSelecionado.cpf}</p>
+              <p><strong>Email:</strong> {funcionarioSelecionado.email}</p>
+              <p><strong>Telefone:</strong> {funcionarioSelecionado.telefone}</p>
+              <p><strong>Data de Nascimento:</strong> {formatarDataBR(funcionarioSelecionado.data_nascimento)}</p>
+              <p><strong>Data de Admissão:</strong> {formatarDataBR(funcionarioSelecionado.data_admissao)}</p>
+              <p><strong>CEP:</strong> {funcionarioSelecionado.cep}</p>
+              <p><strong>Logradouro:</strong> {funcionarioSelecionado.logradouro}</p>
+              <p><strong>Número:</strong> {funcionarioSelecionado.numero}</p>
+              <p><strong>Complemento:</strong> {funcionarioSelecionado.complemento}</p>
+              <p><strong>Bairro:</strong> {funcionarioSelecionado.bairro}</p>
+              <p><strong>Cidade:</strong> {funcionarioSelecionado.cidade}</p>
+              <p><strong>Estado:</strong> {funcionarioSelecionado.estado}</p>
+              <p><strong>Cargo:</strong> {funcionarioSelecionado.cargo}</p>
+              <p><strong>Departamento:</strong> {funcionarioSelecionado.departamento}</p>
+              <p><strong>Salário:</strong> {funcionarioSelecionado.salario}</p>
+            </div>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setFuncionarioSelecionado(null);
+                }}
+                className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
