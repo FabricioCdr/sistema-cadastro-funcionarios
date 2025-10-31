@@ -111,12 +111,22 @@ const CadastroFuncionario: React.FC = () => {
     carregarFuncionarios();
   }, [paginaAtual, filtroNome, filtroCpf, filtroDepartamento]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
+
+  if (name === "data_nascimento" || name === "data_admissao") {
+    const partes = value.split("-");
+    const ano = partes[0] || "";
+    if (ano.length > 4) {
+      return;
+    }
+  }
+
+  setFormData((prev) => ({ ...prev, [name]: value }));
+};
+
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value;
