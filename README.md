@@ -1,25 +1,25 @@
-# Frontend - Sistema de Cadastro de Funcionários
+# Sistema de Cadastro de Funcionários
 
-Aplicação desenvolvida em **React + TypeScript + TailwindCSS**, responsável pela interface de cadastro e gerenciamento de funcionários.
+Aplicação fullstack desenvolvida para o desafio técnico.  
+O projeto é dividido em **frontend (React)** e **backend (Node + PostgreSQL)**.
+
+A ideia é ter um sistema simples de gestão de funcionários com CRUD completo, integração de CEP e busca filtrada.
+
+### Stack utilizada
+
+- **Frontend:** React, TypeScript, TailwindCSS
+- **Backend:** Node.js, Express, TypeScript
+- **Banco de dados:** PostgreSQL
+- **API de CEP:** ViaCEP
 
 ---
 
-## 🚀 Como rodar
+## Como rodar o projeto
 
-### 1. Instalar dependências
+1. **Suba o banco PostgreSQL**
+2. **Inicie o backend**
+3. **Rode o frontend**
 
-Dentro da pasta `frontend`, execute:
-
-npm install
-
-2. Configurar a URL da API
-Crie um arquivo .env na raiz do projeto com a URL do backend:
-
-REACT_APP_API_URL=http://localhost:3001
-
-3. Rodar o projeto
-
-npm start
-O frontend ficará disponível em http://localhost:3000
-
-
+Ambos os projetos têm README separados com instruções detalhadas:
+- [backend/README.md](backend/README.md)
+- [frontend/README.md](frontend/README.md)
